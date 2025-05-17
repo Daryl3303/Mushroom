@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Bell, Droplet } from "lucide-react";
 import { FaCamera } from "react-icons/fa";
 import OpenAI from "openai";
+import { ref, onValue } from "firebase/database";
+import { db } from "../firebase";
 
 // Type definitions
 type SoilData = {
@@ -32,42 +34,29 @@ function Dashboard() {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-
-
-  // Simulate receiving soil data
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newData = {
-        nitrogen: Math.max(
-          10,
-          Math.min(90, soilData.nitrogen + (Math.random() - 0.5) * 5)
-        ),
-        phosphorus: Math.max(
-          10,
-          Math.min(90, soilData.phosphorus + (Math.random() - 0.5) * 5)
-        ),
-        potassium: Math.max(
-          10,
-          Math.min(90, soilData.potassium + (Math.random() - 0.5) * 5)
-        ),
-        moisture: Math.max(
-          10,
-          Math.min(95, soilData.moisture + (Math.random() - 0.5) * 3)
-        ),
-        timestamp: new Date().toLocaleTimeString(),
-      };
+    const soilRef = ref(db, "/sensor_data"); // change this path to your RTDB structure
 
-      setSoilData(newData);
-    }, 3000);
+    const unsubscribe = onValue(soilRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSoilData({
+          nitrogen: data.nitrogen ?? 0,
+          phosphorus: data.phosphorus ?? 0,
+          potassium: data.potassium ?? 0,
+          moisture: data.moisture ?? 0,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+      }
+    });
 
-    return () => clearInterval(interval);
-  }, [soilData]);
+    return () => unsubscribe();
+  }, []);
 
   const addNotification = (
     message: string = "error",
     image: string = "/api/placeholder/320/240"
   ) => {
-    
     const newNotification: Notification = {
       id: Math.random().toString(36).substring(7),
       message,
@@ -82,16 +71,13 @@ function Dashboard() {
     addNotification();
   };
 
-
   useEffect(() => {
-  const interval = setInterval(() => {
-    handleScan();
-  }, 2 * 60 * 60 * 1000); // 2 hours
+    const interval = setInterval(() => {
+      handleScan();
+    }, 2 * 60 * 60 * 1000); // 2 hours
 
-  return () => clearInterval(interval);
-}, []);
-
-  
+    return () => clearInterval(interval);
+  }, []);
 
   const formatValue = (value: number) => {
     let color = "text-green-500";
@@ -116,7 +102,6 @@ function Dashboard() {
     }
   };
 
-  
   const convertBlobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -172,8 +157,6 @@ function Dashboard() {
       console.log("Failed to capture the image.");
     }
   };
-
-  
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">

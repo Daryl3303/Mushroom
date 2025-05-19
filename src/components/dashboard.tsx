@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Droplet } from "lucide-react";
+import { Bell, Droplet, Eye } from "lucide-react";
 import { FaCamera } from "react-icons/fa";
 import OpenAI from "openai";
 
@@ -19,7 +19,7 @@ type Notification = {
   image?: string;
 };
 
-function Dashboard() {
+const Dashboard = () => {
   const [soilData, setSoilData] = useState<SoilData>({
     nitrogen: 35,
     phosphorus: 42,
@@ -32,7 +32,13 @@ function Dashboard() {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
+  const [filterNotifications, setFilterNotifications] = useState<
+    Notification[]
+  >([]);
 
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+
+  const [selectedDate, setSelectedDate] = useState<string>("All");
 
   // Simulate receiving soil data
   useEffect(() => {
@@ -67,7 +73,6 @@ function Dashboard() {
     message: string = "error",
     image: string = "/api/placeholder/320/240"
   ) => {
-    
     const newNotification: Notification = {
       id: Math.random().toString(36).substring(7),
       message,
@@ -82,16 +87,13 @@ function Dashboard() {
     addNotification();
   };
 
-
   useEffect(() => {
-  const interval = setInterval(() => {
-    handleScan();
-  }, 2 * 60 * 60 * 1000); // 2 hours
+    const interval = setInterval(() => {
+      handleScan();
+    }, 2 * 60 * 60 * 1000); // 2 hours
 
-  return () => clearInterval(interval);
-}, []);
-
-  
+    return () => clearInterval(interval);
+  }, []);
 
   const formatValue = (value: number) => {
     let color = "text-green-500";
@@ -116,7 +118,6 @@ function Dashboard() {
     }
   };
 
-  
   const convertBlobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -173,7 +174,21 @@ function Dashboard() {
     }
   };
 
-  
+  const formatDate = (date: Date) => {
+    return date.toISOString().split("T")[0];
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value;
+    setSelectedDate(selected);
+
+    const filtered = notifications.filter(
+      (notif) => formatDate(notif.timestamp) === selected
+    );
+    setFilterNotifications(filtered);
+  };
+
+
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
@@ -185,48 +200,93 @@ function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row flex-1 p-4">
+      <div className="flex flex-col md:flex-row flex-1 p-4 gap-2">
         {/* Notifications Section */}
-        <div className="md:w-3/5 bg-white rounded-lg shadow-md p-4 mr-0 md:mr-4 mb-4 md:mb-0 overflow-y-auto max-h-[600px]">
+        <div className="md:w-2/5 bg-white rounded-lg shadow-md max-h-[700px] flex flex-col items-center p-5">
+          <div className="p-3 bg-green-700 text-white font-semibold flex items-center justify-between w-full">
+            <span className="flex items-center">
+              <Eye className="mr-2" /> Live Camera Feed
+            </span>
+            <span className="bg-red-500 px-2 py-1 rounded-full text-xs animate-pulse">
+              LIVE
+            </span>
+          </div>
+          <div className="flex-1 flex items-center justify-center bg-green-100 w-full h-70 mb-4">
+            <div className="relative h-full w-full rounded overflow-hidden">
+              <img
+                src="http://192.168.1.23:5000/video_feed"
+                alt="Plant camera feed"
+                className="w-full h-full object-cover -rotate-90"
+              />
+            </div>
+          </div>
           <button
             onClick={handleScan}
-            className="px-4 py-2 rounded bg-green-700 text-white font-semibold shadow-sm hover:bg-green-100 flex items-center mb-4"
+            className="px-4 py-2 rounded bg-green-700 text-white font-semibold shadow-sm hover:bg-green-500 flex items-center mb-4 hover:scale-105 transition duration-300 ease-in-out"
           >
             Scan
             <FaCamera className="ml-2" />
           </button>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Bell size={20} />
-            Notifications
-          </h2>
-          {notifications.length === 0 ? (
-            <div className="text-gray-500">No notifications yet.</div>
-          ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="p-3 border-b border-gray-200"
-              >
-                <p className="text-sm">{notification.message}</p>
-                <p className="text-xs text-gray-500">
-                  {notification.timestamp.toLocaleTimeString()}
-                </p>
-                {notification.image && (
-                  <img
-                    src={notification.image}
-                    alt="Notification"
-                    className="mt-2 rounded-md w-full"
-                  />
-                )}
-              </div>
-            ))
-          )}
         </div>
 
         {/* Soil Data Section */}
-        <div className="md:w-2/5 bg-white rounded-lg shadow-md p-4">
-          <h2 className="text-xl font-semibold mb-4">Soil Analysis</h2>
+        <div className="md:w-3/5 bg-white rounded-lg shadow-md p-4">
+          <div className="mb-4">
+            <label
+              htmlFor="dateFilter"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Select Date:
+            </label>
+            <select
+              id="dateFilter"
+              value={selectedDate}
+              onChange={handleDateChange}
+              disabled={availableDates.length === 0}
+              className="p-3 border border-gray-300 rounded-lg"
+            >
+              <option value={formatDate(new Date())}>
+                {formatDate(new Date())}
+              </option>
+              {availableDates
+                .filter((date) => date !== formatDate(new Date()))
+                .map((date) => (
+                  <option key={date} value={date}>
+                    {date}
+                  </option>
+                ))}
+            </select>
+          </div>
 
+          <div className="w-full h-[180px] border border-gray-300 rounded-lg mb-3 p-2 overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Bell size={20} />
+              Notifications
+            </h2>
+            {notifications.length === 0 ? (
+              <div className="text-gray-500">No notifications yet.</div>
+            ) : (
+              filterNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="p-3 border-b border-gray-200"
+                >
+                  <p className="text-sm">{notification.message}</p>
+                  <p className="text-xs text-gray-500">
+                    {notification.timestamp.toLocaleTimeString()}
+                  </p>
+                  {notification.image && (
+                    <img
+                      src={notification.image}
+                      alt="Notification"
+                      className="mt-2 rounded-md w-full"
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <h2 className="text-xl font-semibold mb-4">Soil Analysis</h2>
           <div className="space-y-6">
             <div>
               <h3 className="font-medium text-gray-700 mb-2">NPK Levels</h3>
@@ -325,6 +385,6 @@ function Dashboard() {
       </footer>
     </div>
   );
-}
+};
 
 export default Dashboard;

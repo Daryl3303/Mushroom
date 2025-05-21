@@ -189,7 +189,7 @@ const Dashboard = () => {
             content: [
               {
                 type: "text",
-                text: "Analyze this mushroom image and provide the following information in a structured format:\n1. Growth Stage (initial, mid-stage, or growth stage)\n2. Harvest Readiness (yes/no)\nFormat the response as:\nGROWTH_STAGE: [stage]\nHARVEST_READY: [yes/no]",
+                text: "Analyze this oyster mushroom image and provide the following information in a structured format:\n1. Growth Stage (initial, mid-stage, or growth stage)\n2. Harvest Readiness (yes/no)\nFormat the response as:\nGROWTH_STAGE: [stage]\nHARVEST_READY: [yes/no]",
               },
               {
                 type: "image_url",
@@ -525,11 +525,13 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center justify-center bg-green-100 w-full h-[400px] mb-4">
             <div className="relative h-full w-full rounded overflow-hidden">
-              <img
-                src="http://192.168.100.192:5000/video"
-                alt="Plant camera feed"
-                className="w-full h-full object-cover"
-              />
+              <div className="absolute inset-0 flex items-center justify-center rotate-90">
+                <img
+                  src="http://192.168.100.192:5000/video"
+                  alt="Plant camera feed"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
             </div>
           </div>
           <div className="flex flex-col items-center gap-4 w-full">

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Bell, Droplet, Eye } from "lucide-react";
 import { FaCamera } from "react-icons/fa";
+import { WiHumidity } from "react-icons/wi";
+import { FaTemperatureHigh } from "react-icons/fa";
 import OpenAI from "openai";
 
 // Type definitions
@@ -8,7 +10,13 @@ type SoilData = {
   nitrogen: number;
   phosphorus: number;
   potassium: number;
+  ph: number;
+  moistureSensor1: number;
+  moistureSensor2: number;
+  moistureSensor3: number;
   moisture: number;
+  humidity: number;
+  temperature: number;
   timestamp: string;
 };
 
@@ -21,10 +29,16 @@ type Notification = {
 
 const Dashboard = () => {
   const [soilData, setSoilData] = useState<SoilData>({
-    nitrogen: 35,
-    phosphorus: 42,
-    potassium: 28,
-    moisture: 65,
+    nitrogen: 0,
+    phosphorus: 0,
+    potassium: 0,
+    ph: 0,
+    moistureSensor1: 0,
+    moistureSensor2: 0,
+    moistureSensor3: 0,
+    moisture: 0,
+    humidity: 0,
+    temperature: 0,
     timestamp: new Date().toLocaleTimeString(),
   });
 
@@ -44,22 +58,17 @@ const Dashboard = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       const newData = {
-        nitrogen: Math.max(
-          10,
-          Math.min(90, soilData.nitrogen + (Math.random() - 0.5) * 5)
-        ),
-        phosphorus: Math.max(
-          10,
-          Math.min(90, soilData.phosphorus + (Math.random() - 0.5) * 5)
-        ),
-        potassium: Math.max(
-          10,
-          Math.min(90, soilData.potassium + (Math.random() - 0.5) * 5)
-        ),
-        moisture: Math.max(
-          10,
-          Math.min(95, soilData.moisture + (Math.random() - 0.5) * 3)
-        ),
+        nitrogen: Math.max(10),
+        phosphorus: Math.max(10),
+        potassium: Math.max(10),
+
+        moistureSensor1: Math.max(10),
+        ph: Math.max(10),
+        moistureSensor2: Math.max(10),
+        moistureSensor3: Math.max(10),
+        moisture: Math.max(10),
+        humidity: Math.max(10),
+        temperature: Math.max(10),
         timestamp: new Date().toLocaleTimeString(),
       };
 
@@ -106,7 +115,7 @@ const Dashboard = () => {
   const captureImage = async (): Promise<string | null> => {
     try {
       // Fetch the image from the backend
-      const response = await fetch("http://192.168.165.82:5000//capture_image");
+      const response = await fetch("http://172.20.10.3:5000//capture_image");
       const blob = await response.blob();
 
       const base64 = await convertBlobToBase64(blob);
@@ -188,8 +197,6 @@ const Dashboard = () => {
     setFilterNotifications(filtered);
   };
 
-
-
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
@@ -202,19 +209,19 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex flex-col md:flex-row flex-1 p-4 gap-2">
         {/* Notifications Section */}
-        <div className="md:w-2/5 bg-white rounded-lg shadow-md max-h-[700px] flex flex-col items-center p-5">
+        <div className="md:w-2/6 bg-white rounded-lg shadow-md max-h-[650px] flex flex-col items-center p-5">
           <div className="p-3 bg-green-700 text-white font-semibold flex items-center justify-between w-full">
             <span className="flex items-center">
-              <Eye className="mr-2" /> Live Camera Feed
+              <Eye className="mr-2" /> Live Camera Feed6
             </span>
             <span className="bg-red-500 px-2 py-1 rounded-full text-xs animate-pulse">
               LIVE
             </span>
           </div>
-          <div className="flex-1 flex items-center justify-center bg-green-100 w-full h-70 mb-4">
+          <div className="flex items-center justify-center bg-green-100 w-full h-[400px] mb-4">
             <div className="relative h-full w-full rounded overflow-hidden">
               <img
-                src="http://192.168.1.23:5000/video_feed"
+                src="http://172.20.10.3:5000/video_feed"
                 alt="Plant camera feed"
                 className="w-full h-full object-cover -rotate-90"
               />
@@ -222,7 +229,7 @@ const Dashboard = () => {
           </div>
           <button
             onClick={handleScan}
-            className="px-4 py-2 rounded bg-green-700 text-white font-semibold shadow-sm hover:bg-green-500 flex items-center mb-4 hover:scale-105 transition duration-300 ease-in-out"
+            className="px-4 py-2 rounded bg-green-700 text-white font-semibold shadow-sm hover:bg-green-500 flex items-center mb-4 hover:scale-105 transition duration-300 ease-in-out h-[50px]"
           >
             Scan
             <FaCamera className="ml-2" />
@@ -230,76 +237,21 @@ const Dashboard = () => {
         </div>
 
         {/* Soil Data Section */}
-        <div className="md:w-3/5 bg-white rounded-lg shadow-md p-4">
-          <div className="mb-4">
-            <label
-              htmlFor="dateFilter"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Select Date:
-            </label>
-            <select
-              id="dateFilter"
-              value={selectedDate}
-              onChange={handleDateChange}
-              disabled={availableDates.length === 0}
-              className="p-3 border border-gray-300 rounded-lg"
-            >
-              <option value={formatDate(new Date())}>
-                {formatDate(new Date())}
-              </option>
-              {availableDates
-                .filter((date) => date !== formatDate(new Date()))
-                .map((date) => (
-                  <option key={date} value={date}>
-                    {date}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="w-full h-[180px] border border-gray-300 rounded-lg mb-3 p-2 overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Bell size={20} />
-              Notifications
-            </h2>
-            {notifications.length === 0 ? (
-              <div className="text-gray-500">No notifications yet.</div>
-            ) : (
-              filterNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="p-3 border-b border-gray-200"
-                >
-                  <p className="text-sm">{notification.message}</p>
-                  <p className="text-xs text-gray-500">
-                    {notification.timestamp.toLocaleTimeString()}
-                  </p>
-                  {notification.image && (
-                    <img
-                      src={notification.image}
-                      alt="Notification"
-                      className="mt-2 rounded-md w-full"
-                    />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+        <div className="md:w-2/6 bg-white rounded-lg shadow-md p-4">
           <h2 className="text-xl font-semibold mb-4">Soil Analysis</h2>
-          <div className="space-y-6">
+          <div className="space-y-6 ">
             <div>
               <h3 className="font-medium text-gray-700 mb-2">NPK Levels</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="bg-green-50 p-3 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">Nitrogen (N)</div>
                   <div className="text-xl font-bold">
-                    {formatValue(soilData.nitrogen)}%
+                    {formatValue(soilData.nitrogen)}
                   </div>
                   <div className="mt-2 bg-gray-200 h-2 rounded-full">
                     <div
                       className="bg-green-500 h-2 rounded-full"
-                      style={{ width: `${soilData.nitrogen}%` }}
+                      style={{ width: `${soilData.nitrogen}` }}
                     ></div>
                   </div>
                 </div>
@@ -308,12 +260,12 @@ const Dashboard = () => {
                     Phosphorus (P)
                   </div>
                   <div className="text-xl font-bold">
-                    {formatValue(soilData.phosphorus)}%
+                    {formatValue(soilData.phosphorus)}
                   </div>
                   <div className="mt-2 bg-gray-200 h-2 rounded-full">
                     <div
                       className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${soilData.phosphorus}%` }}
+                      style={{ width: `${soilData.phosphorus}` }}
                     ></div>
                   </div>
                 </div>
@@ -322,22 +274,140 @@ const Dashboard = () => {
                     Potassium (K)
                   </div>
                   <div className="text-xl font-bold">
-                    {formatValue(soilData.potassium)}%
+                    {formatValue(soilData.potassium)}
                   </div>
                   <div className="mt-2 bg-gray-200 h-2 rounded-full">
                     <div
                       className="bg-purple-500 h-2 rounded-full"
-                      style={{ width: `${soilData.potassium}%` }}
+                      style={{ width: `${soilData.potassium}` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">pH</div>
+                  <div className="text-xl font-bold">
+                    {formatValue(soilData.ph)}
+                  </div>
+                  <div className="mt-2 bg-gray-200 h-2 rounded-full">
+                    <div
+                      className="bg-yellow-500 h-2 rounded-full"
+                      style={{ width: `${soilData.ph}` }}
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div>
+            <div className="mb-4">
+              <div className="flex items-center mb-2">
+                <h3 className="font-medium text-gray-700">Soil Moisture</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <div className="flex items-center mb-2">
+                        <small className="text-gray-700">Sensor 1</small>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          soilData.moistureSensor1 < 30
+                            ? "text-red-500"
+                            : soilData.moisture < 50
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {soilData.moistureSensor1.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-gray-200 h-4 rounded-full">
+                      <div
+                        className={`h-4 rounded-full ${
+                          soilData.moistureSensor1 < 30
+                            ? "bg-red-500"
+                            : soilData.moistureSensor1 < 50
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
+                        style={{ width: `${soilData.moistureSensor1}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <div className="flex items-center mb-2">
+                        <small className="text-gray-700">Sensor 2</small>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          soilData.moistureSensor2 < 30
+                            ? "text-red-500"
+                            : soilData.moistureSensor2 < 50
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {soilData.moistureSensor2.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-gray-200 h-4 rounded-full">
+                      <div
+                        className={`h-4 rounded-full ${
+                          soilData.moistureSensor2 < 30
+                            ? "bg-red-500"
+                            : soilData.moistureSensor2 < 50
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
+                        style={{ width: `${soilData.moistureSensor2}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <div className="flex items-center mb-2">
+                        <small className="text-gray-700">Sensor 1</small>
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          soilData.moistureSensor3 < 30
+                            ? "text-red-500"
+                            : soilData.moistureSensor3 < 50
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {soilData.moistureSensor3.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-gray-200 h-4 rounded-full">
+                      <div
+                        className={`h-4 rounded-full ${
+                          soilData.moistureSensor3 < 30
+                            ? "bg-red-500"
+                            : soilData.moistureSensor3 < 50
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
+                        style={{ width: `${soilData.moistureSensor3}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center mb-2">
                 <Droplet size={16} className="text-blue-500 mr-2" />
-                <h3 className="font-medium text-gray-700">Soil Moisture</h3>
+                <h3 className="font-medium text-gray-700">
+                  Soil Moisture Total Average
+                </h3>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex justify-between mb-2">
@@ -367,21 +437,147 @@ const Dashboard = () => {
                   ></div>
                 </div>
               </div>
-            </div>
 
-            <div className="border-t pt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Last updated:</span>
-                <span className="font-medium">{soilData.timestamp}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center mb-2">
+                    <WiHumidity size={25} className="text-blue-500 mr-2" />
+                    <h3 className="font-medium text-gray-700">Humidity</h3>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <span
+                        className={`font-bold ${
+                          soilData.temperature < 30
+                            ? "text-red-500"
+                            : soilData.temperature < 50
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {soilData.temperature.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-gray-200 h-4 rounded-full">
+                      <div
+                        className={`h-4 rounded-full ${
+                          soilData.temperature < 30
+                            ? "bg-red-500"
+                            : soilData.temperature < 50
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
+                        style={{ width: `${soilData.temperature}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center mb-2">
+                    <FaTemperatureHigh size={20} className="text-blue-500 mr-2" />
+                    <h3 className="font-medium text-gray-700">Temperature</h3>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between mb-2">
+                      <span
+                        className={`font-bold ${
+                          soilData.humidity < 30
+                            ? "text-red-500"
+                            : soilData.humidity < 50
+                            ? "text-yellow-500"
+                            : "text-green-500"
+                        }`}
+                      >
+                        {soilData.humidity.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-gray-200 h-4 rounded-full">
+                      <div
+                        className={`h-4 rounded-full ${
+                          soilData.humidity < 30
+                            ? "bg-red-500"
+                            : soilData.humidity < 50
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
+                        style={{ width: `${soilData.humidity}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+          <div className="border-t pt-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Last updated:</span>
+              <span className="font-medium">{soilData.timestamp}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="md:w-2/6 bg-white rounded-lg shadow-md p-4">
+          <div className="mb-4">
+            <label
+              htmlFor="dateFilter"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Select Date:
+            </label>
+            <select
+              id="dateFilter"
+              value={selectedDate}
+              onChange={handleDateChange}
+              disabled={availableDates.length === 0}
+              className="p-3 border border-gray-300 rounded-lg"
+            >
+              <option value={formatDate(new Date())}>
+                {formatDate(new Date())}
+              </option>
+              {availableDates
+                .filter((date) => date !== formatDate(new Date()))
+                .map((date) => (
+                  <option key={date} value={date}>
+                    {date}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="w-full border border-gray-300 rounded-lg mb-3 p-2 overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Bell size={20} />
+              Notifications
+            </h2>
+            {notifications.length === 0 ? (
+              <div className="text-gray-500">No notifications yet.</div>
+            ) : (
+              filterNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="p-3 border-b border-gray-200"
+                >
+                  <p className="text-sm">{notification.message}</p>
+                  <p className="text-xs text-gray-500">
+                    {notification.timestamp.toLocaleTimeString()}
+                  </p>
+                  {notification.image && (
+                    <img
+                      src={notification.image}
+                      alt="Notification"
+                      className="mt-2 rounded-md w-full"
+                    />
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
       {/* Footer */}
       <footer className="bg-gray-800 text-white p-2 text-center text-sm">
-        Soil Monitoring System © {new Date().getFullYear()}
+        Mushroom Monitoring System © {new Date().getFullYear()}
       </footer>
     </div>
   );
